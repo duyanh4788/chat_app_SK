@@ -8,20 +8,27 @@ const socket_io = require('socket.io')(httpServer, {
   },
 });
 const Filter = require('bad-words');
-const { renderMessages, changeStatusUser } = require('./utils/createMessages');
+const {
+  renderMessages,
+  changeStatusOnline,
+  changeStatusOffline,
+} = require('./utils/createMessages');
+const { createUser, removeUserList } = require('./utils/createUsers');
 const { SOCKET_COMMIT, TEXT_BAD } = require('./common/common.constants');
 
 socket_io.on(SOCKET_COMMIT.CONNECT, socket => {
   socket.on(SOCKET_COMMIT.JOIN_ROOM, infoUser => {
+    const listUser = createUser(socket, infoUser);
+    const isUser = listUser.find(({ _id }) => _id === infoUser._id);
     /** send notify */
-    socket.emit(
-      SOCKET_COMMIT.SEND_MESSAGE_NOTIFY,
-      `Hello ${infoUser.fullName}`,
+    socket.emit(SOCKET_COMMIT.SEND_MESSAGE_NOTIFY, `Hello ${isUser.fullName}`);
+    socket.broadcast.emit(
+      SOCKET_COMMIT.CHANGE_STATUS_ONLINE,
+      changeStatusOnline(isUser),
     );
-    socket.emit(SOCKET_COMMIT.SEND_LIST_USERS, changeStatusUser(infoUser));
     socket.broadcast.emit(
       SOCKET_COMMIT.SEND_MESSAGE_NOTIFY,
-      `${infoUser.fullName} Online`,
+      `${isUser.fullName} Online`,
     );
     /** send messages */
     socket.on(SOCKET_COMMIT.SEND_MESSAGE, (dataMessages, callBackAcknow) => {
@@ -36,16 +43,22 @@ socket_io.on(SOCKET_COMMIT.CONNECT, socket => {
       );
       socket.broadcast.emit(
         SOCKET_COMMIT.SEND_MESSAGE_SENDER,
-        `${infoUser.fullName} nhắn tin`,
+        `${isUser.fullName} nhắn tin`,
       );
       callBackAcknow();
     });
     /** disconnect */
     socket.on(SOCKET_COMMIT.DISCONNECTED, () => {
       socket.broadcast.emit(
-        SOCKET_COMMIT.SEND_MESSAGE_NOTIFY,
-        `${infoUser.fullName} offline`,
+        SOCKET_COMMIT.CHANGE_STATUS_OFFLINE,
+        changeStatusOffline(isUser),
       );
+      socket.broadcast.emit(
+        SOCKET_COMMIT.SEND_MESSAGE_NOTIFY,
+        `${isUser.fullName} offline`,
+      );
+      delete socket.id;
+      return removeUserList(socket.id);
     });
   });
 });

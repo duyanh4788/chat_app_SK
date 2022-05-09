@@ -9,19 +9,32 @@ const renderMessages = ({ conversationId, senderId, text }) => {
   }
 };
 
-const changeStatusUser = user => {
+const changeStatusOnline = user => {
   const data = {
     account: user.account,
     avatar: user.avatar,
     email: user.email,
     fullName: user.fullName,
     isOnline: true,
-    _id: user.id,
+    _id: user._id,
+  };
+  return data;
+};
+
+const changeStatusOffline = user => {
+  const data = {
+    account: user.account,
+    avatar: user.avatar,
+    email: user.email,
+    fullName: user.fullName,
+    isOnline: false,
+    _id: user._id,
   };
   return data;
 };
 
 module.exports = {
   renderMessages,
-  changeStatusUser,
+  changeStatusOnline,
+  changeStatusOffline,
 };
