@@ -1,8 +1,9 @@
-const renderMessages = ({ conversationId, senderId, text }) => {
+const renderMessages = ({ conversationId, senderId, reciverId, text }) => {
   if (text && text !== null) {
     const data = {
       conversationId,
       senderId,
+      reciverId,
       text,
     };
     return data;
