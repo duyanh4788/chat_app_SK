@@ -8,45 +8,62 @@ const socket_io = require('socket.io')(httpServer, {
   },
 });
 const Filter = require('bad-words');
-const { renderMessages, changeStatusUser } = require('./utils/createMessages');
+const {
+  renderMessages,
+  changeStatusOnline,
+  changeStatusOffline,
+} = require('./utils/createMessages');
+const { createUser, removeUserList } = require('./utils/createUsers');
 const { SOCKET_COMMIT, TEXT_BAD } = require('./common/common.constants');
 
 socket_io.on(SOCKET_COMMIT.CONNECT, socket => {
   socket.on(SOCKET_COMMIT.JOIN_ROOM, infoUser => {
-    /** send notify */
-    socket.emit(
-      SOCKET_COMMIT.SEND_MESSAGE_NOTIFY,
-      `Hello ${infoUser.fullName}`,
-    );
-    socket.emit(SOCKET_COMMIT.SEND_LIST_USERS, changeStatusUser(infoUser));
-    socket.broadcast.emit(
-      SOCKET_COMMIT.SEND_MESSAGE_NOTIFY,
-      `${infoUser.fullName} Online`,
-    );
-    /** send messages */
-    socket.on(SOCKET_COMMIT.SEND_MESSAGE, (dataMessages, callBackAcknow) => {
-      const filter = new Filter();
-      filter.addWords(...TEXT_BAD);
-      if (filter.isProfane(dataMessages.text)) {
-        return callBackAcknow(SOCKET_COMMIT.MESSAGE_NOT_AVALID);
-      }
-      socket_io.emit(
-        SOCKET_COMMIT.SEND_LIST_MESSAGE,
-        renderMessages(dataMessages),
+    const listUser = createUser(socket, infoUser);
+    if (listUser) {
+      const isUser = listUser.find(({ _id }) => _id === infoUser._id);
+      /** send notify **/
+      socket.emit(
+        SOCKET_COMMIT.SEND_MESSAGE_NOTIFY,
+        `Hello ${isUser.fullName}`,
       );
       socket.broadcast.emit(
-        SOCKET_COMMIT.SEND_MESSAGE_SENDER,
-        `${infoUser.fullName} nhắn tin`,
+        SOCKET_COMMIT.CHANGE_STATUS_ONLINE,
+        changeStatusOnline(isUser),
       );
-      callBackAcknow();
-    });
-    /** disconnect */
-    socket.on(SOCKET_COMMIT.DISCONNECTED, () => {
       socket.broadcast.emit(
         SOCKET_COMMIT.SEND_MESSAGE_NOTIFY,
-        `${infoUser.fullName} offline`,
+        `${isUser.fullName} Online`,
       );
-    });
+      /** send messages **/
+      socket.on(SOCKET_COMMIT.SEND_MESSAGE, (dataMessages, callBackAcknow) => {
+        const filter = new Filter();
+        filter.addWords(...TEXT_BAD);
+        if (filter.isProfane(dataMessages.text)) {
+          return callBackAcknow(SOCKET_COMMIT.MESSAGE_NOT_AVALID);
+        }
+        socket_io.emit(
+          SOCKET_COMMIT.SEND_LIST_MESSAGE,
+          renderMessages(dataMessages),
+        );
+        socket.broadcast.emit(
+          SOCKET_COMMIT.SEND_MESSAGE_SENDER,
+          `${isUser.fullName} nhắn tin`,
+        );
+        callBackAcknow();
+      });
+      /** disconnect **/
+      socket.on(SOCKET_COMMIT.DISCONNECTED, () => {
+        socket.broadcast.emit(
+          SOCKET_COMMIT.CHANGE_STATUS_OFFLINE,
+          changeStatusOffline(isUser),
+        );
+        socket.broadcast.emit(
+          SOCKET_COMMIT.SEND_MESSAGE_NOTIFY,
+          `${infoUser.fullName} offline`,
+        );
+        removeUserList(socket.id);
+      });
+    }
   });
 });
 

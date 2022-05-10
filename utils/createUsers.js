@@ -1,11 +1,20 @@
-let userLists = [];
+let listUsers = [];
 
-const getUserList = uid => {};
+const createUser = (socket, user) => {
+  const findUser = listUsers.find(({ _id }) => _id === user._id);
+  if (findUser) return;
+  if (!findUser) {
+    listUsers.push({ socketId: socket.id, ...user });
+  }
+  return listUsers;
+};
 
-const removeUserList = id =>
-  (userLists = userLists.filter(item => item.id !== id));
+const removeUserList = id => {
+  listUsers = listUsers.filter(({ socketId }) => socketId !== id);
+  return listUsers;
+};
 
 module.exports = {
-  getUserList,
+  createUser,
   removeUserList,
 };
