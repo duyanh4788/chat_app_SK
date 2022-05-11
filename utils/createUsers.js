@@ -2,19 +2,24 @@ let listUsers = [];
 
 const createUser = (socket, user) => {
   const findUser = listUsers.find(({ _id }) => _id === user._id);
-  if (findUser) return;
+  if (findUser) return [findUser];
   if (!findUser) {
     listUsers.push({ socketId: socket.id, ...user });
   }
   return listUsers;
 };
 
+const getSocketById = id => listUsers.find(({ socketId }) => socketId === id);
+
 const removeUserList = id => {
-  listUsers = listUsers.filter(({ socketId }) => socketId !== id);
-  return listUsers;
+  const index = listUsers.findIndex(({ socketId }) => socketId !== id);
+  if (index !== -1) {
+    return listUsers.splice(index, 1)[0];
+  }
 };
 
 module.exports = {
   createUser,
+  getSocketById,
   removeUserList,
 };
