@@ -15,7 +15,7 @@ const {
 } = require('./utils/createMessages');
 const {
   createUser,
-  getSocketById,
+  getUserById,
   removeUserList,
 } = require('./utils/createUsers');
 const { SOCKET_COMMIT, TEXT_BAD } = require('./common/common.constants');
@@ -24,8 +24,6 @@ socket_io.on(SOCKET_COMMIT.CONNECT, socket => {
   /** Connect **/
   socket.on(SOCKET_COMMIT.JOIN_ROOM, infoUser => {
     const listUser = createUser(socket, infoUser);
-    // console.log(socket.id);
-    // console.log(listUser);
     if (listUser && listUser.length) {
       const isUser = listUser.find(({ _id }) => _id === infoUser._id);
       /** send notify **/
@@ -44,30 +42,31 @@ socket_io.on(SOCKET_COMMIT.CONNECT, socket => {
     }
   });
   /** send messages **/
-  socket.on(SOCKET_COMMIT.SEND_MESSAGE, (dataMessages, callBackAcknow) => {
-    const userBySocketId = getSocketById(socket.id);
-    // console.log(socket.id);
-    // console.log(userBySocketId);
-    if (userBySocketId) {
-      const filter = new Filter();
-      filter.addWords(...TEXT_BAD);
-      if (filter.isProfane(dataMessages.text)) {
-        return callBackAcknow(SOCKET_COMMIT.MESSAGE_NOT_AVALID);
+  socket.on(
+    SOCKET_COMMIT.SEND_MESSAGE,
+    (infoUser, dataMessages, callBackAcknow) => {
+      const userBySocketId = getUserById(infoUser._id);
+      if (userBySocketId) {
+        const filter = new Filter();
+        filter.addWords(...TEXT_BAD);
+        if (filter.isProfane(dataMessages.text)) {
+          return callBackAcknow(SOCKET_COMMIT.MESSAGE_NOT_AVALID);
+        }
+        socket_io.emit(
+          SOCKET_COMMIT.SEND_LIST_MESSAGE,
+          renderMessages(dataMessages),
+        );
+        socket.broadcast.emit(
+          SOCKET_COMMIT.SEND_MESSAGE_SENDER,
+          `${userBySocketId.fullName} nhắn tin`,
+        );
+        callBackAcknow();
       }
-      socket_io.emit(
-        SOCKET_COMMIT.SEND_LIST_MESSAGE,
-        renderMessages(dataMessages),
-      );
-      socket.broadcast.emit(
-        SOCKET_COMMIT.SEND_MESSAGE_SENDER,
-        `${userBySocketId.fullName} nhắn tin`,
-      );
-      callBackAcknow();
-    }
-  });
+    },
+  );
   /** disconnect **/
-  socket.on(SOCKET_COMMIT.DISCONNECTED, () => {
-    const userBySocketId = getSocketById(socket.id);
+  socket.on(SOCKET_COMMIT.DISCONNECTED, infoUser => {
+    const userBySocketId = getUserById(infoUser._id);
     if (userBySocketId) {
       socket.broadcast.emit(
         SOCKET_COMMIT.CHANGE_STATUS_OFFLINE,
@@ -78,8 +77,7 @@ socket_io.on(SOCKET_COMMIT.CONNECT, socket => {
         `${userBySocketId.fullName} offline`,
       );
     }
-    const user = removeUserList(socket.id);
-    // console.log('DISCONNECTED' , user);
+    removeUserList(infoUser._id);
   });
 });
 

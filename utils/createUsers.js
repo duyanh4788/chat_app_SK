@@ -10,9 +10,10 @@ const createUser = (socket, user) => {
 };
 
 const getSocketById = id => listUsers.find(({ socketId }) => socketId === id);
+const getUserById = id => listUsers.find(({ _id }) => _id === id);
 
 const removeUserList = id => {
-  const index = listUsers.findIndex(({ socketId }) => socketId !== id);
+  const index = listUsers.findIndex(({ _id }) => _id !== id);
   if (index !== -1) {
     return listUsers.splice(index, 1)[0];
   }
@@ -21,5 +22,6 @@ const removeUserList = id => {
 module.exports = {
   createUser,
   getSocketById,
+  getUserById,
   removeUserList,
 };
