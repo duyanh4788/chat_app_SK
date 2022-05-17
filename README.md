@@ -14,4 +14,4 @@ Copy file example.env.dev to .env
 
 Run npm run install & yarn install in order to install dependencies.
 
-Run npm start & yarn start in order to install dependencies. At this point you can see the example app at http://localhost:7000.
+Run npm start & yarn start in order to install dependencies. At this point you can see the example app at http://localhost:5001.
